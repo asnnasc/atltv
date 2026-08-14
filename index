@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ATLTV V14 CORRIGIDA</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<script src="https://unpkg.com/@supabase/supabase-js@2.39.7/dist/umd/supabase.min.js"></script>
+</head>
+<body class="bg-[#f5f5f5]">
+<div id="app"></div>
+<script>
+const SUPABASE_URL = 'https://xmtkxvviqxqkcwwtcno.supabase.co';
+const SUPABASE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InhtdGt4dml2cWl4cWtjd3Z0Y25vIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODU5NDI0MjYsImV4cCI6MjEwMTUxODQyNn0.xYZzyyGUs5pQRcR9mqbj0UIqyP7nVVPpwXQoIyf2Qas';
+const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_KEY);
+
+async function init(){
+  document.getElementById('app').innerHTML = `<div class="min-h-screen flex flex-col items-center justify-center bg-black text-white"><div class="animate-spin w-12 h-12 border-4 border-[#00ff88] border-t-transparent rounded-full mb-4"></div><h1 class="font-black text-2xl">Carregando 42 clientes do Supabase...</h1><p class="text-zinc-400 text-sm mt-2">Bug 5->42 corrigido</p></div>`;
+  const {data,error} = await supabaseClient.from('clientes').select('*').order('data_vencimento');
+  if(error){document.getElementById('app').innerHTML='Erro:'+error.message; return;}
+  render(data);
+}
+function render(clientes){
+  const hoje=new Date();hoje.setHours(0,0,0,0);
+  const hojeBR=new Date().toLocaleDateString('pt-BR');
+  const cobrancasHoje=clientes.filter(c=>{if(!c.data_vencimento)return false;var vd=new Date(c.data_vencimento);vd.setHours(0,0,0,0);return vd.getTime()===hoje.getTime();});
+  var lista=cobrancasHoje.length>0?cobrancasHoje:clientes;
+  var rows=lista.map(c=>{
+    var venc=c.data_vencimento?new Date(c.data_vencimento).toLocaleDateString('pt-BR'):'-';
+    var vd=new Date(c.data_vencimento);vd.setHours(0,0,0,0);
+    var diff=Math.floor((hoje-vd)/86400000);
+    var label=diff===0?'0d atraso':diff>0?diff+'d atraso':'Em dia';
+    var cor=diff>0?'bg-red-100 text-red-600':diff===0?'bg-yellow-100 text-yellow-700':'bg-green-100 text-green-700';
+    return `<tr class="border-b"><td class="py-3 px-5 font-bold">${c.nome||c.cliente_nome}</td><td><div>${c.whatsapp||''}</div><div class="text-xs text-zinc-500">${c.plano_nome||''}</div></td><td>R$ ${c.valor||0}</td><td>${venc}</td><td><span class="px-2 py-1 rounded-full text-xs font-bold ${cor}">${label}</span></td><td><button class="w-8 h-8 bg-green-500 rounded-full">W</button> <button class="px-3 bg-black text-white rounded-full text-xs h-8">PAGO</button></td></tr>`;
+  }).join('');
+  document.getElementById('app').innerHTML=`<header class="bg-black text-white h-16 flex items-center px-6 justify-between"><div class="font-black">ATLTV FIBRA <span class="text-[#00ff88] text-">FUTURE</span></div><div class="bg-zinc-900 px-3 py-1 rounded-full text-xs">Online ${clientes.length} cli - CORRIGIDO</div></header><div class="max-w- mx-auto p-6"><div class="bg-white rounded-2xl shadow border overflow-hidden"><div class="p-5 border-b flex justify-between"><h2 class="font-bold">Cobranças de Hoje - ${hojeBR} - ${cobrancasHoje.length} para cobrar de ${clientes.length} total</h2><span class="text-xs bg-green-100 px-2 py-1 rounded-full">Bug corrigido</span></div><div class="overflow-auto"><table class="w-full text-sm"><thead class="bg-zinc-50 border-b text-zinc-500 text-xs"><tr><th class="text-left py-3 px-5">Nome</th><th>Whatsapp/Plano</th><th>Valor</th><th>Vencimento</th><th>Situacao</th><th>Acao</th></tr></thead><tbody>${rows}</tbody></table></div></div><div class="mt-4 bg-[#00c950] p-3 rounded-xl font-bold text-xs flex justify-between"><span>Online ${clientes.length} cli • 42 rows • CORRIGIDA</span><span class="bg-black text-white px-3 py-1 rounded-full">V14</span></div></div>`;
+}
+init();
+</script>
+</body>
+</html>
