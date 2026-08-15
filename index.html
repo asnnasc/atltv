@@ -172,6 +172,31 @@ localStorage.setItem=function(k,v){
 };
 window.atltvPushNow=pushAll;
 window.atltvPullNow=()=>pullAll(false);
+<script>
+window.vdConfirmar = function(tipo){
+  let c = window._cli;
+  if(!c){ alert('Cliente não encontrado'); return; }
+  let hoje = new Date().toISOString().split('T')[0];
+  let dias = 0;
+  try{
+    let v1 = new Date(c.data_vencimento+'T12:00:00').getTime();
+    let v2 = new Date(hoje+'T12:00:00').getTime();
+    dias = Math.max(0, Math.floor((v2-v1)/86400000));
+  }catch(e){}
+  let pag = {id:'pg_'+Date.now(), cliente_id:c.id, cliente_nome:c.nome, valor:c.valor, data_vencimento:c.data_vencimento, data_pagamento:hoje, dias_atraso:dias, situacao:tipo };
+  let pagamentos = []; try{pagamentos=JSON.parse(localStorage.getItem('atltv_pagamentos')||'[]')}catch(e){}
+  pagamentos.unshift(pag);
+  localStorage.setItem('atltv_pagamentos', JSON.stringify(pagamentos));
+  // Próximo mês
+  let d = new Date(c.data_vencimento+'T12:00:00'); d.setMonth(d.getMonth()+1);
+  let prox = d.toISOString().split('T')[0];
+  let clientes = []; try{clientes=JSON.parse(localStorage.getItem('atltv_clientes')||'[]')}catch(e){}
+  clientes = clientes.map(x=> x.id===c.id? {...x, data_vencimento:prox} : x);
+  localStorage.setItem('atltv_clientes', JSON.stringify(clientes));
+  document.getElementById('atltv-pago-modal').classList.remove('open');
+  document.getElementById('atltv-pago-modal').style.display='none';
+  location.reload();
+}
 </script>
 </body>
 </html>
