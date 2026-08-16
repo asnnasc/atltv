@@ -147,5 +147,33 @@ localStorage.setItem=function(k,v){
 window.atltvPushNow=pushAll;
 window.atltvPullNow=()=>pullAll(false);
 </script>
+<div id="atltv-pago-modal" style="display:none;position:fixed;inset:0;z-index:99999;background:rgba(0,0,0,.6);align-items:center;justify-content:center;padding:20px"><div style="background:#fff;border-radius:24px;width:100%;max-width:400px;padding:24px"><h3 style="font-weight:800">Dar baixa?</h3><p id="atltv-pago-nome" style="color:#666;font-size:13px"></p><button id="btn-pago-real" style="width:100%;height:48px;background:#18181B;color:#fff;border-radius:9999px;margin-top:12px;font-weight:700">✅ Pago - entra na receita</button><button id="btn-bonus-real" style="width:100%;height:48px;background:#FEF3C7;border:1px solid #F59E0B;color:#92400E;border-radius:9999px;margin-top:8px;font-weight:700">🎁 Bônus - não entra</button><button onclick="document.getElementById('atltv-pago-modal').style.display='none'" style="width:100%;height:40px;background:#F3F4F6;border-radius:9999px;margin-top:8px">Cancelar</button></div></div>
+<script>
+window._cli=null;
+document.body.addEventListener('click',function(e){
+  var t=e.target; if(!t) return;
+  if(t.textContent && t.textContent.includes('Marcar PAGO')){
+    e.preventDefault(); e.stopImmediatePropagation();
+    var card=t.closest('div'); var nome=card?card.textContent:'';
+    var clis=JSON.parse(localStorage.getItem('atltv_clientes')||'[]');
+    var cli=clis.find(function(c){return nome.includes(c.nome)}) || clis[0];
+    if(cli){ window._cli=cli; document.getElementById('atltv-pago-nome').textContent=cli.nome+' - R$'+cli.valor; document.getElementById('atltv-pago-modal').style.display='flex'; }
+  }
+},true);
+function darBaixa(tipo){
+  var c=window._cli; if(!c) return;
+  var hoje=new Date().toISOString().split('T')[0];
+  var pags=JSON.parse(localStorage.getItem('atltv_pagamentos')||'[]');
+  pags.unshift({id:'pg_'+Date.now(),cliente_id:c.id,cliente_nome:c.nome,valor:c.valor,data_vencimento:c.data_vencimento,data_pagamento:hoje,dias_atraso:0,situacao:tipo});
+  localStorage.setItem('atltv_pagamentos',JSON.stringify(pags));
+  var clis=JSON.parse(localStorage.getItem('atltv_clientes')||'[]');
+  var d=new Date(c.data_vencimento+'T12:00:00'); d.setMonth(d.getMonth()+1);
+  clis=clis.map(function(x){return x.id===c.id?{...x,data_vencimento:d.toISOString().split('T')[0]}:x});
+  localStorage.setItem('atltv_clientes',JSON.stringify(clis));
+  location.reload();
+}
+document.getElementById('btn-pago-real').onclick=function(){darBaixa('Pago')};
+document.getElementById('btn-bonus-real').onclick=function(){darBaixa('Bônus')};
+</script>
 </body>
 </html>
