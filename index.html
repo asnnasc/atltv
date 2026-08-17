@@ -153,24 +153,32 @@ window.atltvPullNow=()=>pullAll(false);
 (function(){
 window._cli=null;
 function instala(){
-  document.querySelectorAll('button').forEach(function(b){
-    if(b.textContent.trim()!=='Marcar PAGO') return;
-    if(b.dataset.fix==='1') return;
+  var btns=document.querySelectorAll('button');
+  var clis=[]; try{clis=JSON.parse(localStorage.getItem('atltv_clientes')||'[]')}catch(e){}
+  for(var i=0;i<btns.length;i++){
+    var b=btns[i];
+    if(b.textContent.trim()!=='Marcar PAGO') continue;
+    if(b.dataset.fix==='1') continue;
+    var card=b.closest('div');
+    var t=card?card.innerText:'';
+    var cli=null;
+    for(var j=0;j<clis.length;j++){ if(t.includes(clis[j].nome)){ cli=clis[j]; break; } }
     var n=b.cloneNode(true); n.dataset.fix='1';
+    if(cli) n.dataset.cliId=cli.id;
     b.parentNode.replaceChild(n,b);
     n.addEventListener('click', function(e){
       e.preventDefault(); e.stopPropagation();
-      var clis=[]; try{clis=JSON.parse(localStorage.getItem('atltv_clientes')||'[]')}catch(e){}
-      var t=(this.closest('div')||{}).innerText||'';
-      var cli=null;
-      for(var j=0;j<clis.length;j++){ if(t.indexOf(clis[j].nome.substring(0,10))>-1){ cli=clis[j]; break; } }
-      if(cli){
-        window._cli=cli;
-        document.getElementById('atltv-pago-nome').textContent=cli.nome+' - R$'+cli.valor+' - Venc: '+cli.data_vencimento;
+      var id=this.dataset.cliId;
+      var lista=[]; try{lista=JSON.parse(localStorage.getItem('atltv_clientes')||'[]')}catch(e){}
+      var c=null;
+      for(var k=0;k<lista.length;k++){ if(lista[k].id===id){ c=lista[k]; break; } }
+      if(c){
+        window._cli=c;
+        document.getElementById('atltv-pago-nome').textContent=c.nome+' - R$'+c.valor+' - Venc: '+c.data_vencimento;
         document.getElementById('atltv-pago-modal').style.display='flex';
       }
     });
-  });
+  }
 }
 setInterval(instala, 800);
 window.darBaixa=function(tp){
