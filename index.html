@@ -147,5 +147,113 @@ localStorage.setItem=function(k,v){
 window.atltvPushNow=pushAll;
 window.atltvPullNow=()=>pullAll(false);
 </script>
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <title>Sistema de Pagamentos</title>
+  <style>
+    body { font-family: Arial, sans-serif; margin: 20px; }
+    table { width: 100%; border-collapse: collapse; margin-top: 20px; }
+    th, td { border: 1px solid #ccc; padding: 8px; text-align: left; }
+    button { padding: 6px 12px; border-radius: 6px; cursor: pointer; }
+
+    /* Estilo do popup */
+    #pago-modal {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,.65);
+      align-items: center;
+      justify-content: center;
+      z-index: 9999;
+    }
+    #pago-modal .box {
+      background: #fff;
+      border-radius: 12px;
+      padding: 20px;
+      max-width: 400px;
+      width: 100%;
+    }
+    #pago-modal h3 { margin: 0 0 10px; }
+    #pago-modal button { width: 100%; margin-top: 10px; height: 40px; font-weight: bold; }
+    #btn-pago { background: #18181B; color: #fff; }
+    #btn-bonus { background: #FEF3C7; border: 1px solid #F59E0B; color: #92400E; }
+    #btn-cancelar { background: #F3F4F6; }
+  </style>
+</head>
+<body>
+
+<h2>Lista de Clientes</h2>
+<table>
+  <thead>
+    <tr><th>Nome</th><th>Valor</th><th>Vencimento</th><th>Ação</th></tr>
+  </thead>
+  <tbody id="clientes">
+    <!-- Clientes serão carregados aqui -->
+  </tbody>
+</table>
+
+<!-- Popup -->
+<div id="pago-modal">
+  <div class="box">
+    <h3>Confirmar pagamento?</h3>
+    <p id="cliente-info"></p>
+    <button id="btn-pago">✅ Pago - entra na receita</button>
+    <button id="btn-bonus">🎁 Bônus - não entra</button>
+    <button id="btn-cancelar">Cancelar</button>
+  </div>
+</div>
+
+<script>
+  // Dados simulados
+  let clientes = [
+    {id:1, nome:"Maria", valor:100, vencimento:"2026-08-20"},
+    {id:2, nome:"João", valor:150, vencimento:"2026-08-25"}
+  ];
+
+  // Renderizar tabela
+  const tbody = document.getElementById("clientes");
+  clientes.forEach(c => {
+    let tr = document.createElement("tr");
+    tr.innerHTML = `
+      <td>${c.nome}</td>
+      <td>R$ ${c.valor}</td>
+      <td>${c.vencimento}</td>
+      <td><button onclick="abrirModal(${c.id})">Marcar PAGO</button></td>
+    `;
+    tbody.appendChild(tr);
+  });
+
+  let clienteSelecionado = null;
+
+  function abrirModal(id){
+    clienteSelecionado = clientes.find(c => c.id===id);
+    document.getElementById("cliente-info").textContent =
+      `${clienteSelecionado.nome} - R$${clienteSelecionado.valor} - Venc: ${clienteSelecionado.vencimento}`;
+    document.getElementById("pago-modal").style.display="flex";
+  }
+
+  function registrarPagamento(tipo){
+    if(!clienteSelecionado) return;
+    let hoje = new Date().toISOString().split("T")[0];
+    console.log("Pagamento registrado:", {
+      cliente: clienteSelecionado.nome,
+      valor: clienteSelecionado.valor,
+      vencimento: clienteSelecionado.vencimento,
+      data_pagamento: hoje,
+      situacao: tipo
+    });
+    alert(`Pagamento de ${clienteSelecionado.nome} marcado como ${tipo}`);
+    document.getElementById("pago-modal").style.display="none";
+  }
+
+  document.getElementById("btn-pago").onclick = () => registrarPagamento("Pago");
+  document.getElementById("btn-bonus").onclick = () => registrarPagamento("Bônus");
+  document.getElementById("btn-cancelar").onclick = () => {
+    document.getElementById("pago-modal").style.display="none";
+  };
+</script>
+
 </body>
 </html>
