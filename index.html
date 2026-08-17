@@ -31,8 +31,8 @@ Error generating stack: `+u.message+`
       <table><tr><th>Cliente</th><th>Vencimento</th><th>Pago em</th><th>Valor</th><th>Atraso</th></tr>
       ${gn.pagosNoMes.map((C)=>`<tr><td>${C.cliente_nome}</td><td>${_e(C.data_vencimento)}</td><td>${_e(C.data_pagamento)}</td><td>${j(C.valor)}</td><td>${C.dias_atraso}d</td></tr>`).join("")}
       </table>
-<!-- POPUP FIX -->
-<div id="atltv-pago-modal" style="display:none;position:fixed;inset:0;z-index:999999;background:rgba(0,0,0,.65);align-items:center;justify-content:center;padding:20px"><div style="background:#fff;border-radius:24px;width:100%;max-width:380px;padding:22px"><h3 style="font-weight:800;font-size:18px">Dar baixa?</h3><p id="atltv-pago-nome" style="color:#666;font-size:13px;margin-top:4px"></p><button id="btn-pago-real" type="button" style="width:100%;height:48px;background:#18181B;color:#fff;border-radius:9999px;margin-top:16px;font-weight:800;cursor:pointer">✅ Pago</button><button id="btn-bonus-real" type="button" style="width:100%;height:48px;background:#FEF3C7;border:1px solid #F59E0B;color:#92400E;border-radius:9999px;margin-top:8px;font-weight:800;cursor:pointer">🎁 Bônus</button><button type="button" onclick="document.getElementById('atltv-pago-modal').style.display='none'" style="width:100%;height:40px;background:#F3F4F6;border-radius:9999px;margin-top:8px;cursor:pointer">Cancelar</button></div></div>
+<style>#atltv-sair-btn,#atltv-users-btn-header{display:none!important}</style>
+<div id="atltv-pago-modal" style="display:none;position:fixed;inset:0;z-index:999999;background:rgba(0,0,0,.65);align-items:center;justify-content:center;padding:20px"><div style="background:#fff;border-radius:24px;width:100%;max-width:380px;padding:22px;box-shadow:0 20px 60px rgba(0,0,0,.3)"><h3 style="font-weight:800;font-size:18px">Dar baixa?</h3><p id="atltv-pago-nome" style="color:#666;font-size:13px;margin-top:4px"></p><button id="btn-pago-real" type="button" style="width:100%;height:48px;background:#18181B;color:#fff;border-radius:9999px;margin-top:16px;font-weight:800">✅ Pago - entra</button><button id="btn-bonus-real" type="button" style="width:100%;height:48px;background:#FEF3C7;border:1px solid #F59E0B;color:#92400E;border-radius:9999px;margin-top:8px;font-weight:800">🎁 Bônus - não entra</button><button type="button" onclick="document.getElementById('atltv-pago-modal').style.display='none'" style="width:100%;height:40px;background:#F3F4F6;border-radius:9999px;margin-top:8px">Cancelar</button></div></div>
 <script>
 (function(){
 window._cli=null;
@@ -48,24 +48,29 @@ function instala(){
     n.addEventListener('click', function(ev){
       ev.preventDefault(); ev.stopPropagation();
       var card=this.closest('div');
-      var txt2=card?card.innerText:'';
+      var t=card?card.innerText:'';
       var clis=[]; try{clis=JSON.parse(localStorage.getItem('atltv_clientes')||'[]')}catch(e){}
       var cli=null;
-      for(var j=0;j<clis.length;j++){ if(txt2.indexOf(clis[j].nome.substring(0,10))>-1){ cli=clis[j]; break; } }
+      for(var j=0;j<clis.length;j++){ if(t.indexOf(clis[j].nome.substring(0,10))>-1){ cli=clis[j]; break; } }
+      if(!cli){
+        var todos=document.querySelectorAll('button[data-fix="1"]');
+        var idx=Array.prototype.indexOf.call(todos,this);
+        if(clis[idx]) cli=clis[idx];
+      }
       if(cli){
         window._cli=cli;
-        document.getElementById('atltv-pago-nome').textContent=cli.nome+' - R$'+cli.valor;
+        document.getElementById('atltv-pago-nome').textContent=cli.nome+' - R$'+cli.valor+' - Venc: '+cli.data_vencimento;
         document.getElementById('atltv-pago-modal').style.display='flex';
       }
     });
   }
 }
-setInterval(instala, 900);
-window.darBaixa=function(t){
+setInterval(instala, 800);
+window.darBaixa=function(tp){
   var c=window._cli; if(!c) return;
   var hoje=new Date().toISOString().split('T')[0];
   var pags=[]; try{pags=JSON.parse(localStorage.getItem('atltv_pagamentos')||'[]')}catch(e){}
-  pags.unshift({id:'pg_'+Date.now(),cliente_id:c.id,cliente_nome:c.nome,valor:c.valor,data_vencimento:c.data_vencimento,data_pagamento:hoje,dias_atraso:0,situacao:t});
+  pags.unshift({id:'pg_'+Date.now(),cliente_id:c.id,cliente_nome:c.nome,valor:c.valor,data_vencimento:c.data_vencimento,data_pagamento:hoje,dias_atraso:0,situacao:tp});
   localStorage.setItem('atltv_pagamentos',JSON.stringify(pags));
   var clis=[]; try{clis=JSON.parse(localStorage.getItem('atltv_clientes')||'[]')}catch(e){}
   var d=new Date(c.data_vencimento+'T12:00:00'); d.setMonth(d.getMonth()+1);
@@ -75,16 +80,18 @@ window.darBaixa=function(t){
   document.getElementById('atltv-pago-modal').style.display='none';
   location.reload();
 };
-var b1=document.getElementById('btn-pago-real');
-var b2=document.getElementById('btn-bonus-real');
-if(b1) b1.onclick=function(){window.darBaixa('Pago')};
-if(b2) b2.onclick=function(){window.darBaixa('Bônus')};
+document.addEventListener('DOMContentLoaded', function(){
+  var b1=document.getElementById('btn-pago-real');
+  var b2=document.getElementById('btn-bonus-real');
+  if(b1) b1.onclick=function(){window.darBaixa('Pago')};
+  if(b2) b2.onclick=function(){window.darBaixa('Bônus')};
+});
 })();
 </script>
 
 </body></html>`;c.document.write(h),c.document.close()},zd=()=>{let c=window.open("","_blank");if(!c){$("Pop-up bloqueado");return}let h=ca.map((C)=>`<tr><td>${C.nome}</td><td>${C.whatsapp}</td><td>${C.plano_nome}</td><td>${j(C.valor)}</td><td>${_e(C.data_vencimento)}</td><td>${C.status}</td></tr>`).join("");c.document.write(`<html><head><title>Clientes - ${a.nome_empresa}</title><style>body{font-family:sans-serif;padding:24px} table{width:100%;border-collapse:collapse} th,td{border:1px solid #ddd;padding:6px} th{background:#eee} @media print{body{padding:0}}</style></head><body><h2>Clientes - ${a.nome_empresa}</h2><p style="font-size:12px;color:#666">Página limpa • ${new Date().toLocaleString("pt-BR")}</p><table><tr><th>Nome</th><th>Whatsapp</th><th>Plano</th><th>Valor</th><th>Vencimento</th><th>Status</th></tr>${h}</table>
-<!-- POPUP FIX -->
-<div id="atltv-pago-modal" style="display:none;position:fixed;inset:0;z-index:999999;background:rgba(0,0,0,.65);align-items:center;justify-content:center;padding:20px"><div style="background:#fff;border-radius:24px;width:100%;max-width:380px;padding:22px"><h3 style="font-weight:800;font-size:18px">Dar baixa?</h3><p id="atltv-pago-nome" style="color:#666;font-size:13px;margin-top:4px"></p><button id="btn-pago-real" type="button" style="width:100%;height:48px;background:#18181B;color:#fff;border-radius:9999px;margin-top:16px;font-weight:800;cursor:pointer">✅ Pago</button><button id="btn-bonus-real" type="button" style="width:100%;height:48px;background:#FEF3C7;border:1px solid #F59E0B;color:#92400E;border-radius:9999px;margin-top:8px;font-weight:800;cursor:pointer">🎁 Bônus</button><button type="button" onclick="document.getElementById('atltv-pago-modal').style.display='none'" style="width:100%;height:40px;background:#F3F4F6;border-radius:9999px;margin-top:8px;cursor:pointer">Cancelar</button></div></div>
+<style>#atltv-sair-btn,#atltv-users-btn-header{display:none!important}</style>
+<div id="atltv-pago-modal" style="display:none;position:fixed;inset:0;z-index:999999;background:rgba(0,0,0,.65);align-items:center;justify-content:center;padding:20px"><div style="background:#fff;border-radius:24px;width:100%;max-width:380px;padding:22px;box-shadow:0 20px 60px rgba(0,0,0,.3)"><h3 style="font-weight:800;font-size:18px">Dar baixa?</h3><p id="atltv-pago-nome" style="color:#666;font-size:13px;margin-top:4px"></p><button id="btn-pago-real" type="button" style="width:100%;height:48px;background:#18181B;color:#fff;border-radius:9999px;margin-top:16px;font-weight:800">✅ Pago - entra</button><button id="btn-bonus-real" type="button" style="width:100%;height:48px;background:#FEF3C7;border:1px solid #F59E0B;color:#92400E;border-radius:9999px;margin-top:8px;font-weight:800">🎁 Bônus - não entra</button><button type="button" onclick="document.getElementById('atltv-pago-modal').style.display='none'" style="width:100%;height:40px;background:#F3F4F6;border-radius:9999px;margin-top:8px">Cancelar</button></div></div>
 <script>
 (function(){
 window._cli=null;
@@ -100,24 +107,29 @@ function instala(){
     n.addEventListener('click', function(ev){
       ev.preventDefault(); ev.stopPropagation();
       var card=this.closest('div');
-      var txt2=card?card.innerText:'';
+      var t=card?card.innerText:'';
       var clis=[]; try{clis=JSON.parse(localStorage.getItem('atltv_clientes')||'[]')}catch(e){}
       var cli=null;
-      for(var j=0;j<clis.length;j++){ if(txt2.indexOf(clis[j].nome.substring(0,10))>-1){ cli=clis[j]; break; } }
+      for(var j=0;j<clis.length;j++){ if(t.indexOf(clis[j].nome.substring(0,10))>-1){ cli=clis[j]; break; } }
+      if(!cli){
+        var todos=document.querySelectorAll('button[data-fix="1"]');
+        var idx=Array.prototype.indexOf.call(todos,this);
+        if(clis[idx]) cli=clis[idx];
+      }
       if(cli){
         window._cli=cli;
-        document.getElementById('atltv-pago-nome').textContent=cli.nome+' - R$'+cli.valor;
+        document.getElementById('atltv-pago-nome').textContent=cli.nome+' - R$'+cli.valor+' - Venc: '+cli.data_vencimento;
         document.getElementById('atltv-pago-modal').style.display='flex';
       }
     });
   }
 }
-setInterval(instala, 900);
-window.darBaixa=function(t){
+setInterval(instala, 800);
+window.darBaixa=function(tp){
   var c=window._cli; if(!c) return;
   var hoje=new Date().toISOString().split('T')[0];
   var pags=[]; try{pags=JSON.parse(localStorage.getItem('atltv_pagamentos')||'[]')}catch(e){}
-  pags.unshift({id:'pg_'+Date.now(),cliente_id:c.id,cliente_nome:c.nome,valor:c.valor,data_vencimento:c.data_vencimento,data_pagamento:hoje,dias_atraso:0,situacao:t});
+  pags.unshift({id:'pg_'+Date.now(),cliente_id:c.id,cliente_nome:c.nome,valor:c.valor,data_vencimento:c.data_vencimento,data_pagamento:hoje,dias_atraso:0,situacao:tp});
   localStorage.setItem('atltv_pagamentos',JSON.stringify(pags));
   var clis=[]; try{clis=JSON.parse(localStorage.getItem('atltv_clientes')||'[]')}catch(e){}
   var d=new Date(c.data_vencimento+'T12:00:00'); d.setMonth(d.getMonth()+1);
@@ -127,10 +139,12 @@ window.darBaixa=function(t){
   document.getElementById('atltv-pago-modal').style.display='none';
   location.reload();
 };
-var b1=document.getElementById('btn-pago-real');
-var b2=document.getElementById('btn-bonus-real');
-if(b1) b1.onclick=function(){window.darBaixa('Pago')};
-if(b2) b2.onclick=function(){window.darBaixa('Bônus')};
+document.addEventListener('DOMContentLoaded', function(){
+  var b1=document.getElementById('btn-pago-real');
+  var b2=document.getElementById('btn-bonus-real');
+  if(b1) b1.onclick=function(){window.darBaixa('Pago')};
+  if(b2) b2.onclick=function(){window.darBaixa('Bônus')};
+});
 })();
 </script>
 
@@ -227,7 +241,7 @@ async function pullAll(silent=false){
 }
 
 try{ const l=localStorage.getItem('atltv_logged_user'); if(l) document.getElementById('atltv-login-overlay').style.display='none'; }catch(e){}
-window.ensureButtons=function(){
+window.ensureButtons=function(){return;/*disabled*/if(false){
   const h=document.querySelector('header'); if(!h) return;
   if(!document.getElementById('atltv-sair-btn')){ const b=document.createElement('button'); b.id='atltv-sair-btn'; b.textContent='Sair'; b.style.cssText='margin-left:8px;padding:6px 14px;border-radius:9999px;background:#EF4444;color:white;font-size:12px;font-weight:700;border:none;cursor:pointer'; b.onclick=()=>{ if(confirm('Sair?')){ localStorage.removeItem('atltv_logged_user'); location.reload(); }}; h.appendChild(b); }
   if(!document.getElementById('atltv-users-btn-header')){ const b=document.createElement('button'); b.id='atltv-users-btn-header'; b.textContent='Usuarios'; b.style.cssText='margin-left:8px;padding:6px 12px;border-radius:9999px;background:#2563EB;color:white;font-size:12px;font-weight:700;border:none;cursor:pointer'; b.onclick=()=>{ window.renderUsersList(); document.getElementById('atltv-users-modal').classList.add('open'); }; const s=document.getElementById('atltv-sair-btn'); if(s) h.insertBefore(b,s); else h.appendChild(b); }
@@ -252,8 +266,8 @@ window.atltvPushNow=pushAll;
 window.atltvPullNow=()=>pullAll(false);
 </script>
 
-<!-- POPUP FIX -->
-<div id="atltv-pago-modal" style="display:none;position:fixed;inset:0;z-index:999999;background:rgba(0,0,0,.65);align-items:center;justify-content:center;padding:20px"><div style="background:#fff;border-radius:24px;width:100%;max-width:380px;padding:22px"><h3 style="font-weight:800;font-size:18px">Dar baixa?</h3><p id="atltv-pago-nome" style="color:#666;font-size:13px;margin-top:4px"></p><button id="btn-pago-real" type="button" style="width:100%;height:48px;background:#18181B;color:#fff;border-radius:9999px;margin-top:16px;font-weight:800;cursor:pointer">✅ Pago</button><button id="btn-bonus-real" type="button" style="width:100%;height:48px;background:#FEF3C7;border:1px solid #F59E0B;color:#92400E;border-radius:9999px;margin-top:8px;font-weight:800;cursor:pointer">🎁 Bônus</button><button type="button" onclick="document.getElementById('atltv-pago-modal').style.display='none'" style="width:100%;height:40px;background:#F3F4F6;border-radius:9999px;margin-top:8px;cursor:pointer">Cancelar</button></div></div>
+<style>#atltv-sair-btn,#atltv-users-btn-header{display:none!important}</style>
+<div id="atltv-pago-modal" style="display:none;position:fixed;inset:0;z-index:999999;background:rgba(0,0,0,.65);align-items:center;justify-content:center;padding:20px"><div style="background:#fff;border-radius:24px;width:100%;max-width:380px;padding:22px;box-shadow:0 20px 60px rgba(0,0,0,.3)"><h3 style="font-weight:800;font-size:18px">Dar baixa?</h3><p id="atltv-pago-nome" style="color:#666;font-size:13px;margin-top:4px"></p><button id="btn-pago-real" type="button" style="width:100%;height:48px;background:#18181B;color:#fff;border-radius:9999px;margin-top:16px;font-weight:800">✅ Pago - entra</button><button id="btn-bonus-real" type="button" style="width:100%;height:48px;background:#FEF3C7;border:1px solid #F59E0B;color:#92400E;border-radius:9999px;margin-top:8px;font-weight:800">🎁 Bônus - não entra</button><button type="button" onclick="document.getElementById('atltv-pago-modal').style.display='none'" style="width:100%;height:40px;background:#F3F4F6;border-radius:9999px;margin-top:8px">Cancelar</button></div></div>
 <script>
 (function(){
 window._cli=null;
@@ -269,24 +283,29 @@ function instala(){
     n.addEventListener('click', function(ev){
       ev.preventDefault(); ev.stopPropagation();
       var card=this.closest('div');
-      var txt2=card?card.innerText:'';
+      var t=card?card.innerText:'';
       var clis=[]; try{clis=JSON.parse(localStorage.getItem('atltv_clientes')||'[]')}catch(e){}
       var cli=null;
-      for(var j=0;j<clis.length;j++){ if(txt2.indexOf(clis[j].nome.substring(0,10))>-1){ cli=clis[j]; break; } }
+      for(var j=0;j<clis.length;j++){ if(t.indexOf(clis[j].nome.substring(0,10))>-1){ cli=clis[j]; break; } }
+      if(!cli){
+        var todos=document.querySelectorAll('button[data-fix="1"]');
+        var idx=Array.prototype.indexOf.call(todos,this);
+        if(clis[idx]) cli=clis[idx];
+      }
       if(cli){
         window._cli=cli;
-        document.getElementById('atltv-pago-nome').textContent=cli.nome+' - R$'+cli.valor;
+        document.getElementById('atltv-pago-nome').textContent=cli.nome+' - R$'+cli.valor+' - Venc: '+cli.data_vencimento;
         document.getElementById('atltv-pago-modal').style.display='flex';
       }
     });
   }
 }
-setInterval(instala, 900);
-window.darBaixa=function(t){
+setInterval(instala, 800);
+window.darBaixa=function(tp){
   var c=window._cli; if(!c) return;
   var hoje=new Date().toISOString().split('T')[0];
   var pags=[]; try{pags=JSON.parse(localStorage.getItem('atltv_pagamentos')||'[]')}catch(e){}
-  pags.unshift({id:'pg_'+Date.now(),cliente_id:c.id,cliente_nome:c.nome,valor:c.valor,data_vencimento:c.data_vencimento,data_pagamento:hoje,dias_atraso:0,situacao:t});
+  pags.unshift({id:'pg_'+Date.now(),cliente_id:c.id,cliente_nome:c.nome,valor:c.valor,data_vencimento:c.data_vencimento,data_pagamento:hoje,dias_atraso:0,situacao:tp});
   localStorage.setItem('atltv_pagamentos',JSON.stringify(pags));
   var clis=[]; try{clis=JSON.parse(localStorage.getItem('atltv_clientes')||'[]')}catch(e){}
   var d=new Date(c.data_vencimento+'T12:00:00'); d.setMonth(d.getMonth()+1);
@@ -296,10 +315,12 @@ window.darBaixa=function(t){
   document.getElementById('atltv-pago-modal').style.display='none';
   location.reload();
 };
-var b1=document.getElementById('btn-pago-real');
-var b2=document.getElementById('btn-bonus-real');
-if(b1) b1.onclick=function(){window.darBaixa('Pago')};
-if(b2) b2.onclick=function(){window.darBaixa('Bônus')};
+document.addEventListener('DOMContentLoaded', function(){
+  var b1=document.getElementById('btn-pago-real');
+  var b2=document.getElementById('btn-bonus-real');
+  if(b1) b1.onclick=function(){window.darBaixa('Pago')};
+  if(b2) b2.onclick=function(){window.darBaixa('Bônus')};
+});
 })();
 </script>
 
