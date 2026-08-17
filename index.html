@@ -40,7 +40,6 @@ CREATE TABLE pagamentos (id uuid primary key default gen_random_uuid(), cliente_
 </script>
   <script>(function(){function m(a){var h=a.getAttribute("href");if(!h)return;try{var u=new URL(h,document.baseURI);if((u.protocol==="http:"||u.protocol==="https:")&&u.host!==location.host){a.target="_blank";a.rel="noopener noreferrer";}}catch(e){}}function s(){document.querySelectorAll("a[href]").forEach(m);}if(document.readyState!=="loading"){s();}else{document.addEventListener("DOMContentLoaded",s);}document.addEventListener("click",function(e){var a=e.target&&e.target.closest&&e.target.closest("a[href]");if(a){m(a);}},true);})();</script>
   
-
 <style>
 #atltv-login-overlay{position:fixed;inset:0;z-index:999999;background:#0F172A;display:flex;align-items:center;justify-content:center;padding:20px;font-family:Inter,sans-serif}
 #atltv-sync{position:fixed;bottom:12px;left:50%;transform:translateX(-50%);background:#16A34A;color:white;padding:8px 14px;border-radius:9999px;font-size:11px;z-index:100000;font-family:Inter;font-weight:700}
@@ -189,7 +188,7 @@ window.atltvPullNow=()=>pullAll(false);
   <thead>
     <tr><th>Nome</th><th>Valor</th><th>Vencimento</th><th>Ação</th></tr>
   </thead>
-  <tbody id="clientes">
+  <tbody id="Clientes">
     <!-- Clientes serão carregados aqui -->
   </tbody>
 </table>
