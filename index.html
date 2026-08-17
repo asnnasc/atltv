@@ -153,21 +153,58 @@ window.atltvPullNow=()=>pullAll(false);
 (function(){
 window._cli=null;
 function instala(){
-  document.querySelectorAll('button').forEach(function(b){
-    if(b.textContent.trim()!=='Marcar PAGO') return;
+  var btns = Array.from(document.querySelectorAll('button')).filter(function(b){ return b.textContent.trim()==='Marcar PAGO'; });
+  var clis=[]; try{clis=JSON.parse(localStorage.getItem('atltv_clientes')||'[]')}catch(e){}
+  btns.forEach(function(b){
     if(b.dataset.fix==='1') return;
     var n=b.cloneNode(true); n.dataset.fix='1';
     b.parentNode.replaceChild(n,b);
     n.addEventListener('click', function(e){
       e.preventDefault(); e.stopPropagation();
-      var clis=[]; try{clis=JSON.parse(localStorage.getItem('atltv_clientes')||'[]')}catch(e){}
-      var t=(this.closest('div')||{}).innerText||'';
+      // pega a linha (tr) desse botão
+      var row = this.closest('tr');
+      if(!row) row = this.closest('div'); // fallback
+      // tenta pegar o nome da primeira coluna da linha
+      var nomeNaLinha = '';
+      if(row){
+        // na sua tabela, o nome está na primeira célula
+        var firstCell = row.querySelector('td') || row.children[0] || row;
+        // se for tr, pega primeiro td
+        if(row.tagName==='TR'){
+          var tds = row.querySelectorAll('td');
+          if(tds[0]) nomeNaLinha = tds[0].innerText.trim();
+        } else {
+          // tenta achar div com nome - pega texto até quebra de linha
+          nomeNaLinha = (row.innerText.split('\n')[0] || '').trim();
+          // se ainda não achou, tenta subir 2 níveis e pegar primeiro filho
+          var parentRow = this.closest('div[class*="grid"]') || this.parentElement.parentElement;
+          if(parentRow){
+            var cells = parentRow.children;
+            if(cells[0]) nomeNaLinha = cells[0].innerText.trim().split('\n')[0];
+          }
+        }
+        // se ainda falhar, usa o texto da linha toda e procura
+        if(!nomeNaLinha || nomeNaLinha.length<2){
+          nomeNaLinha = row.innerText.trim().split('\n')[0];
+        }
+      }
+      // agora acha o cliente pelo nome EXATO da linha
       var cli=null;
-      for(var j=0;j<clis.length;j++){ if(t.indexOf(clis[j].nome.substring(0,10))>-1){ cli=clis[j]; break; } }
+      for(var j=0;j<clis.length;j++){
+        if(clis[j].nome.trim()===nomeNaLinha.trim()){ cli=clis[j]; break; }
+      }
+      // fallback: contains
+      if(!cli){
+        for(var j=0;j<clis.length;j++){
+          if(nomeNaLinha.includes(clis[j].nome) || clis[j].nome.includes(nomeNaLinha)){ cli=clis[j]; break; }
+        }
+      }
       if(cli){
         window._cli=cli;
         document.getElementById('atltv-pago-nome').textContent=cli.nome+' - R$'+cli.valor+' - Venc: '+cli.data_vencimento;
         document.getElementById('atltv-pago-modal').style.display='flex';
+      } else {
+        alert('Não achei cliente: '+nomeNaLinha);
       }
     });
   });
