@@ -73,7 +73,7 @@ async function pushAll(){
     syncEl.style.background='#2563EB';
     for(let c of clientes){
       if(!c.id) c.id=crypto.randomUUID();
-      try{ await supabase.from('clientes').upsert({ id:c.id.toString(), nome:(c.nome||'').slice(0,100), whatsapp:(c.whatsapp||'').slice(0,30), plano:(c.plano_nome||c.plano||'').slice(0,100), valor:parseFloat(c.valor||0)||0, vencimento:(c.data_vencimento||c.vencimento||(function(){let d=new Date();return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`})(), status:(c.status||'Ativo').slice(0,20), dados_completos:c }, {onConflict:'id'}); }catch(e){}
+      try{ await supabase.from('clientes').upsert({ id:c.id.toString(), nome:(c.nome||'').slice(0,100), whatsapp:(c.whatsapp||'').slice(0,30), plano:(c.plano_nome||c.plano||'').slice(0,100), valor:parseFloat(c.valor||0)||0, vencimento:(c.data_vencimento||c.vencimento||Ge(), status:(c.status||'Ativo').slice(0,20), dados_completos:c }, {onConflict:'id'}); }catch(e){}
     }
     for(let p of planos){
       if(!p.id) p.id=crypto.randomUUID();
@@ -217,7 +217,7 @@ window.darBaixa=function(tp){
   localStorage.setItem('atltv_pagamentos',JSON.stringify(pags));
   var clis=[]; try{clis=JSON.parse(localStorage.getItem('atltv_clientes')||'[]')}catch(e){}
   var d=new Date(c.data_vencimento+'T12:00:00'); d.setMonth(d.getMonth()+1);
-  var prox=d.toISOString().split('T')[0];
+  var prox=(function(){let D=d;return `${D.getFullYear()}-${String(D.getMonth()+1).padStart(2,'0')}-${String(D.getDate()).padStart(2,'0')}`})();
   localStorage.setItem('atltv_clientes',JSON.stringify(clis.map(function(x){return x.id===c.id?Object.assign({},x,{data_vencimento:prox}):x})));
   document.getElementById('atltv-pago-modal').style.display='none';
   location.reload();
