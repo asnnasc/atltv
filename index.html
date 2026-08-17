@@ -147,62 +147,50 @@ localStorage.setItem=function(k,v){
 window.atltvPushNow=pushAll;
 window.atltvPullNow=()=>pullAll(false);
 </script>
+<style>#atltv-sair-btn,#atltv-users-btn-header{display:none!important}</style>
+<div id="atltv-pago-modal" style="display:none;position:fixed;inset:0;z-index:99999;background:rgba(0,0,0,.65);align-items:center;justify-content:center;padding:20px"><div style="background:#fff;border-radius:24px;width:100%;max-width:380px;padding:22px"><h3 style="font-weight:800;font-size:18px">Dar baixa?</h3><p id="atltv-pago-nome" style="color:#666;font-size:13px;margin-top:4px"></p><button id="btn-pago-real" type="button" style="width:100%;height:48px;background:#18181B;color:#fff;border-radius:9999px;margin-top:16px;font-weight:800">✅ Pago - entra na receita</button><button id="btn-bonus-real" type="button" style="width:100%;height:48px;background:#FEF3C7;border:1px solid #F59E0B;color:#92400E;border-radius:9999px;margin-top:8px;font-weight:800">🎁 Bônus - não entra</button><button type="button" onclick="document.getElementById('atltv-pago-modal').style.display='none'" style="width:100%;height:40px;background:#F3F4F6;border-radius:9999px;margin-top:8px">Cancelar</button></div></div>
+<script>
+(function(){
+window._cli=null;
 function instala(){
-  var btns = Array.from(document.querySelectorAll('button')).filter(function(b){ return b.textContent.trim()==='Marcar PAGO'; });
-  var clis=[]; try{clis=JSON.parse(localStorage.getItem('atltv_clientes')||'[]')}catch(e){}
-  btns.forEach(function(b){
+  document.querySelectorAll('button').forEach(function(b){
+    if(b.textContent.trim()!=='Marcar PAGO') return;
     if(b.dataset.fix==='1') return;
     var n=b.cloneNode(true); n.dataset.fix='1';
     b.parentNode.replaceChild(n,b);
     n.addEventListener('click', function(e){
       e.preventDefault(); e.stopPropagation();
-      // pega a linha (tr) desse botão
-      var row = this.closest('tr');
-      if(!row) row = this.closest('div'); // fallback
-      // tenta pegar o nome da primeira coluna da linha
-      var nomeNaLinha = '';
-      if(row){
-        // na sua tabela, o nome está na primeira célula
-        var firstCell = row.querySelector('td') || row.children[0] || row;
-        // se for tr, pega primeiro td
-        if(row.tagName==='TR'){
-          var tds = row.querySelectorAll('td');
-          if(tds[0]) nomeNaLinha = tds[0].innerText.trim();
-        } else {
-          // tenta achar div com nome - pega texto até quebra de linha
-          nomeNaLinha = (row.innerText.split('\n')[0] || '').trim();
-          // se ainda não achou, tenta subir 2 níveis e pegar primeiro filho
-          var parentRow = this.closest('div[class*="grid"]') || this.parentElement.parentElement;
-          if(parentRow){
-            var cells = parentRow.children;
-            if(cells[0]) nomeNaLinha = cells[0].innerText.trim().split('\n')[0];
-          }
-        }
-        // se ainda falhar, usa o texto da linha toda e procura
-        if(!nomeNaLinha || nomeNaLinha.length<2){
-          nomeNaLinha = row.innerText.trim().split('\n')[0];
-        }
-      }
-      // agora acha o cliente pelo nome EXATO da linha
+      var clis=[]; try{clis=JSON.parse(localStorage.getItem('atltv_clientes')||'[]')}catch(e){}
+      var t=(this.closest('div')||{}).innerText||'';
       var cli=null;
-      for(var j=0;j<clis.length;j++){
-        if(clis[j].nome.trim()===nomeNaLinha.trim()){ cli=clis[j]; break; }
-      }
-      // fallback: contains
-      if(!cli){
-        for(var j=0;j<clis.length;j++){
-          if(nomeNaLinha.includes(clis[j].nome) || clis[j].nome.includes(nomeNaLinha)){ cli=clis[j]; break; }
-        }
-      }
+      for(var j=0;j<clis.length;j++){ if(t.indexOf(clis[j].nome.substring(0,10))>-1){ cli=clis[j]; break; } }
       if(cli){
         window._cli=cli;
         document.getElementById('atltv-pago-nome').textContent=cli.nome+' - R$'+cli.valor+' - Venc: '+cli.data_vencimento;
         document.getElementById('atltv-pago-modal').style.display='flex';
-      } else {
-        alert('Não achei cliente: '+nomeNaLinha);
       }
     });
   });
 }
+setInterval(instala, 800);
+window.darBaixa=function(tp){
+  var c=window._cli; if(!c) return;
+  var hoje=new Date().toISOString().split('T')[0];
+  var pags=[]; try{pags=JSON.parse(localStorage.getItem('atltv_pagamentos')||'[]')}catch(e){}
+  pags.unshift({id:'pg_'+Date.now(),cliente_id:c.id,cliente_nome:c.nome,valor:c.valor,data_vencimento:c.data_vencimento,data_pagamento:hoje,dias_atraso:0,situacao:tp});
+  localStorage.setItem('atltv_pagamentos',JSON.stringify(pags));
+  var clis=[]; try{clis=JSON.parse(localStorage.getItem('atltv_clientes')||'[]')}catch(e){}
+  var d=new Date(c.data_vencimento+'T12:00:00'); d.setMonth(d.getMonth()+1);
+  var prox=d.toISOString().split('T')[0];
+  localStorage.setItem('atltv_clientes',JSON.stringify(clis.map(function(x){return x.id===c.id?Object.assign({},x,{data_vencimento:prox}):x})));
+  document.getElementById('atltv-pago-modal').style.display='none';
+  location.reload();
+};
+setTimeout(function(){
+  document.getElementById('btn-pago-real').onclick=function(){window.darBaixa('Pago')};
+  document.getElementById('btn-bonus-real').onclick=function(){window.darBaixa('Bônus')};
+}, 1000);
+})();
+</script>
 </body>
 </html>
