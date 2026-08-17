@@ -242,12 +242,5 @@ setTimeout(function(){
 }, 1000);
 })();
 </script>
-
-<div id="atltv-mobile-sync" style="position:fixed;bottom:80px;left:50%;transform:translateX(-50%);z-index:999999;background:#0B1220;border:1px solid rgba(255,255,255,0.2);padding:12px 16px;border-radius:16px;display:flex;gap:8px;box-shadow:0 8px 30px rgba(0,0,0,0.4)">
-<button onclick="window.atltvPullNow&&window.atltvPullNow();setTimeout(()=>location.reload(),1500)" style="background:#16A34A;color:white;border:none;padding:10px 14px;border-radius:999px;font-weight:700;font-size:12px">⬇️ Baixar da Nuvem</button>
-<button onclick="window.atltvPushNow&&window.atltvPushNow()" style="background:#2563EB;color:white;border:none;padding:10px 14px;border-radius:999px;font-weight:700;font-size:12px">⬆️ Enviar p/ Nuvem</button>
-<button onclick="if(confirm('Apagar Roberto e Fernanda da NUVEM?')){ (async()=>{ try{ const {createClient}=await import('https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm'); const url=localStorage.getItem('atltv_sb_url')||'https://xmtkxvivqixqkcwvtcno.supabase.co'; const key=localStorage.getItem('atltv_sb_key')||'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InhtdGt4dml2cWl4cWtjd3Z0Y25vIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODU5NDI0MjYsImV4cCI6MjEwMTUxODQyNn0.xYZzyyGUs5pQRcR9mqbj0UIqyP7nVVPpwXQoIyf2Qas'; const sb=createClient(url,key); await sb.from('clientes').delete().ilike('nome','%Roberto%'); await sb.from('clientes').delete().ilike('nome','%Fernanda%'); alert('Removidos da nuvem! Agora clique em Baixar'); }catch(e){ alert('Erro: '+e.message); } })() }" style="background:#EF4444;color:white;border:none;padding:10px 12px;border-radius:999px;font-weight:700;font-size:11px">🗑️ Limpar Nuvem</button>
-</div>
-<div id="atltv-sync" style="position:fixed;bottom:10px;left:10px;z-index:99999;background:#16A34A;color:white;padding:6px 12px;border-radius:999px;font-size:11px;font-weight:700">☁️ Online</div>
 </body>
 </html>
