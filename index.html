@@ -73,7 +73,7 @@ async function pushAll(){
     syncEl.style.background='#2563EB';
     for(let c of clientes){
       if(!c.id) c.id=crypto.randomUUID();
-      try{ await supabase.from('clientes').upsert({ id:c.id.toString(), nome:(c.nome||'').slice(0,100), whatsapp:(c.whatsapp||'').slice(0,30), plano:(c.plano_nome||c.plano||'').slice(0,100), valor:parseFloat(c.valor||0)||0, vencimento:(c.data_vencimento||c.vencimento||Ge(), status:(c.status||'Ativo').slice(0,20), dados_completos:c }, {onConflict:'id'}); }catch(e){}
+      try{ await supabase.from('clientes').upsert({ id:c.id.toString(), nome:(c.nome||'').slice(0,100), whatsapp:(c.whatsapp||'').slice(0,30), plano:(c.plano_nome||c.plano||'').slice(0,100), valor:parseFloat(c.valor||0)||0, vencimento:(c.data_vencimento||c.vencimento||new Date().toISOString().slice(0,10)).toString().slice(0,10), status:(c.status||'Ativo').slice(0,20), dados_completos:c }, {onConflict:'id'}); }catch(e){}
     }
     for(let p of planos){
       if(!p.id) p.id=crypto.randomUUID();
