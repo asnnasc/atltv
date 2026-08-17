@@ -73,7 +73,7 @@ async function pushAll(){
     syncEl.style.background='#2563EB';
     for(let c of clientes){
       if(!c.id) c.id=crypto.randomUUID();
-      try{ await supabase.from('clientes').upsert({ id:c.id.toString(), nome:(c.nome||'').slice(0,100), whatsapp:(c.whatsapp||'').slice(0,30), plano:(c.plano_nome||c.plano||'').slice(0,100), valor:parseFloat(c.valor||0)||0, vencimento:(c.data_vencimento||c.vencimento||Ge(), status:(c.status||'Ativo').slice(0,20), dados_completos:c }, {onConflict:'id'}); }catch(e){}
+      try{ await supabase.from('clientes').upsert({ id:c.id.toString(), nome:(c.nome||'').slice(0,100), whatsapp:(c.whatsapp||'').slice(0,30), plano:(c.plano_nome||c.plano||'').slice(0,100), valor:parseFloat(c.valor||0)||0, vencimento:(c.data_vencimento||c.vencimento||Ge=()=>{let d=new Date();return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`}, status:(c.status||'Ativo').slice(0,20), dados_completos:c }, {onConflict:'id'}); }catch(e){}
     }
     for(let p of planos){
       if(!p.id) p.id=crypto.randomUUID();
@@ -148,46 +148,30 @@ window.atltvPushNow=pushAll;
 window.atltvPullNow=()=>pullAll(false);
 </script>
 <div id="atltv-pago-modal" style="display:none;position:fixed;inset:0;z-index:99999;background:rgba(0,0,0,.65);align-items:center;justify-content:center;padding:20px"><div style="background:#fff;border-radius:24px;width:100%;max-width:380px;padding:22px"><h3 style="font-weight:800;font-size:18px">Dar baixa?</h3><p id="atltv-pago-nome" style="color:#666;font-size:13px;margin-top:4px"></p><button id="btn-pago-real" type="button" style="width:100%;height:48px;background:#18181B;color:#fff;border-radius:9999px;margin-top:16px;font-weight:800">✅ Pago - entra na receita</button><button id="btn-bonus-real" type="button" style="width:100%;height:48px;background:#FEF3C7;border:1px solid #F59E0B;color:#92400E;border-radius:9999px;margin-top:8px;font-weight:800">🎁 Bônus - não entra</button><button type="button" onclick="document.getElementById('atltv-pago-modal').style.display='none'" style="width:100%;height:40px;background:#F3F4F6;border-radius:9999px;margin-top:8px">Cancelar</button></div></div>
+<script><div id="atltv-pago-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.6);z-index:99999;align-items:center;justify-content:center;">
+<div style="background:white;padding:24px;border-radius:20px;min-width:320px"><h3 id="atltv-pago-nome" style="font-weight:bold;margin-bottom:12px"></h3><div style="display:flex;gap:8px"><button onclick="darBaixa('pago')" style="flex:1;padding:10px;background:#18181B;color:white;border-radius:12px;border:none">Pago</button><button onclick="darBaixa('bonus')" style="flex:1;padding:10px;background:#7C3AED;color:white;border-radius:12px;border:none">Bônus</button><button onclick="this.closest('#atltv-pago-modal').style.display='none'" style="padding:10px">X</button></div></div></div>
 <script>
-(function(){
-function instala(){
-var linhas=document.querySelectorAll('tr');
-for(var i=0;i<linhas.length;i++){
-var tds=linhas[i].querySelectorAll('td');
-if(!tds.length) continue;
-var tem=false;
-for(var k=0;k<tds.length;k++){if(tds[k].textContent.includes('Marcar PAGO')) tem=true;}
-if(tem &&!linhas[i].querySelector('.atltv-pago-linha-btn')){
-var btn=document.createElement('button');
-btn.textContent='✓ Marcar PAGO';
-btn.className='atltv-pago-linha-btn';
-btn.style='margin-left:8px;padding:6px 12px;border-radius:20px;background:#18181B;color:white;border:none;cursor:pointer;font-size:12px;';
-btn.onclick=(function(tr){return function(){
-var nomeNaLinha=tr.innerText.split('\n')[0].trim();
-var clis=[]; try{clis=JSON.parse(localStorage.getItem('atltv_clientes')||'[]')}catch(e){}
-var cli=null;
-for(var j=0;j<clis.length;j++){if(clis[j].nome.trim()===nomeNaLinha.trim()){ cli=clis[j]; break; }}
-if(!cli){for(var j=0;j<clis.length;j++){ if(nomeNaLinha.includes(clis[j].nome) || clis[j].nome.includes(nomeNaLinha)){ cli=clis[j]; break; }}}
-if(cli){window._cli=cli;document.getElementById('atltv-pago-nome').textContent=cli.nome+' - R$'+cli.valor+' - Venc: '+cli.data_vencimento;document.getElementById('atltv-pago-modal').style.display='flex';} else {alert('Não achei cliente: '+nomeNaLinha);}
-};})(linhas[i]);
-tds[tds.length-1].appendChild(btn);
-}}}
-setInterval(instala,800);
+window._cli=null;
 window.darBaixa=function(tp){
 var c=window._cli; if(!c) return;
 var hoje=(function(){let d=new Date();return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`})();
-var pags=[]; try{pags=JSON.parse(localStorage.getItem('atltv_pagamentos')||'[]')}catch(e){}
-pags.unshift({id:'pg_'+Date.now(),cliente_id:c.id,cliente_nome:c.nome,valor:c.valor,data_vencimento:c.data_vencimento,data_pagamento:hoje,dias_atraso:0,situacao:tp==='bonus'?'Bônus':'Pago'});
+var pags=JSON.parse(localStorage.getItem('atltv_pagamentos')||'[]');
+pags.unshift({id:'pg_'+Date.now(),cliente_id:c.id,cliente_nome:c.nome,valor:c.valor,data_vencimento:c.data_vencimento,data_pagamento:hoje,situacao:tp});
 localStorage.setItem('atltv_pagamentos',JSON.stringify(pags));
-var clis=[]; try{clis=JSON.parse(localStorage.getItem('atltv_clientes')||'[]')}catch(e){}
+var clis=JSON.parse(localStorage.getItem('atltv_clientes')||'[]');
 var d=new Date(c.data_vencimento+'T12:00:00'); d.setMonth(d.getMonth()+1);
-var prox=(function(){let D=d;return `${D.getFullYear()}-${String(D.getMonth()+1).padStart(2,'0')}-${String(D.getDate()).padStart(2,'0')}`})();
-localStorage.setItem('atltv_clientes',JSON.stringify(clis.map(function(x){return x.id===c.id?Object.assign({},x,{data_vencimento:prox}):x})));
-document.getElementById('atltv-pago-modal').style.display='none'; location.reload();
+var prox=`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+localStorage.setItem('atltv_clientes',JSON.stringify(clis.map(x=>x.id===c.id?{...x,data_vencimento:prox}:x)));
+location.reload();
 };
-})();
+document.addEventListener('click',function(e){
+var b=e.target.closest('button'); if(!b||!b.textContent.includes('Marcar PAGO')) return;
+e.preventDefault(); e.stopPropagation();
+var nome=b.closest('tr').children[0].innerText.trim();
+var clis=JSON.parse(localStorage.getItem('atltv_clientes')||'[]');
+var cli=clis.find(c=>c.nome.trim()===nome) || clis.find(c=>nome.includes(c.nome));
+if(cli){window._cli=cli; document.getElementById('atltv-pago-nome').textContent=cli.nome+' - R$'+cli.valor; document.getElementById('atltv-pago-modal').style.display='flex';}
+},true);
 </script>
-<div id="atltv-pago-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,0.6);z-index:9999;align-items:center;justify-content:center;">
-<div style="background:white;padding:24px;border-radius:20px;min-width:320px;max-width:90%;"><h3 id="atltv-pago-nome" style="font-weight:bold;margin-bottom:16px;"></h3><div style="display:flex;gap:8px;"><button onclick="darBaixa('pago')" style="flex:1;padding:10px;background:#18181B;color:white;border-radius:12px;border:none;cursor:pointer;">Pago</button><button onclick="darBaixa('bonus')" style="flex:1;padding:10px;background:#7C3AED;color:white;border-radius:12px;border:none;cursor:pointer;">Bônus</button><button onclick="document.getElementById('atltv-pago-modal').style.display='none'" style="padding:10px;">X</button></div></div></div>
 </body>
 </html>
