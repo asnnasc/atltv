@@ -121,38 +121,43 @@ async function pullAll(silent=false){
   try{
     if(!silent){ syncEl.textContent='☁️ Verificando nuvem...'; }
     const {data:cliData} = await supabase.from('clientes').select('*').limit(1000);
-    const {data:planosData} = await supabase.from('planos').select('*').limit(100);
-    let usuariosData=[]; try{ const r=await supabase.from('usuarios').select('*').limit(100); if(r.data) usuariosData=r.data; }catch(e){}
+    const {data:planosData} = await supabase.from('planos').select('*').limit(1000);
+    const {data:pagData} = await supabase.from('pagamentos').select('*').limit(2000).catch(()=>({data:[]}));
     let hasNew=false;
-    const localCli = getLS('atltv_clientes');
-    const localPlanos = getLS('atltv_planos');
-    const localUsers = getLS('atltv_usuarios');
-    if(cliData && cliData.length>localCli.length){
-      const lista=cliData.filter(r=>!r.id.startsWith('SYNC_')).map(r=> r.dados_completos && r.dados_completos.nome ? r.dados_completos : { id:r.id, nome:r.nome, whatsapp:r.whatsapp, plano_nome:r.plano, valor:r.valor, data_vencimento:r.vencimento, status:r.status });
-      if(lista.length>localCli.length){ localStorage.setItem('atltv_clientes', JSON.stringify(lista)); hasNew=true; }
-    }
-    if(planosData && planosData.length>localPlanos.length){
-      const pLista=planosData.map(r=> r.dados && r.dados.nome ? r.dados : { id:r.id, nome:r.nome, descricao:r.velocidade||'', velocidade:r.velocidade||'', valor:r.valor||r.preco, preco:r.preco||r.valor, status:'Ativo' });
-      if(pLista.length>localPlanos.length){ localStorage.setItem('atltv_planos', JSON.stringify(pLista)); hasNew=true; }
-    }
-    if(usuariosData && usuariosData.length>localUsers.length){
-      const uLista=usuariosData.map(r=> r.dados && r.dados.usuario ? r.dados : { id:r.id, nome:r.nome, usuario:r.usuario, email:r.email, senha:r.senha, perfil:r.perfil, status:r.status });
-      if(uLista.length>localUsers.length){ localStorage.setItem('atltv_usuarios', JSON.stringify(uLista)); hasNew=true; }
-    }
-        try{
-      const {data:pagData} = await supabase.from('pagamentos').select('*').limit(1000);
-      if(pagData && pagData.length>0){
-        const localPags = getLS('atltv_pagamentos');
-        const listaNuvem = pagData.map(r=> r.dados && r.dados.cliente_nome ? r.dados : { id:r.id, cliente_id:r.cliente_id, cliente_nome:r.cliente_nome, valor:r.valor, data_vencimento:r.data_vencimento, data_pagamento:r.data_pagamento, dias_atraso:r.dias_atraso, situacao:r.situacao }).filter(c=>c.cliente_nome && c.cliente_nome && !c.cliente_nome.includes('Roberto') && !c.cliente_nome.includes('Fernanda'));
+
+    // PLANOS - nuvem é a verdade
+    try{
+      const localPlanos = getLS('atltv_planos');
+      if(planosData && planosData.length>0){
+        const nuvemP = planosData.map(r=> r.dados && r.dados.nome ? r.dados : { id:r.id, nome:r.nome, descricao:r.descricao||'', valor:r.valor||0, status:'Ativo' });
         const mapa = new Map();
-        [...localPags, ...listaNuvem].forEach(p=>{ if(p && p.id) mapa.set(p.id, p); });
+        [...nuvemP, ...localPlanos].forEach(p=>{ if(p&&p.id) mapa.set(p.id.toString(), {...(mapa.get(p.id.toString())||{}), ...p}); });
         const merged = Array.from(mapa.values());
-        if(merged.length !== localPags.length){
-          localStorage.setItem('atltv_pagamentos', JSON.stringify(merged));
-          hasNew=true;
-        }
+        localStorage.setItem('atltv_planos', JSON.stringify(merged));
+        if(merged.length!=localPlanos.length) hasNew=true;
       }
-    }catch(e){ console.log('pag pull erro', e.message); }
+    }catch(e){}
+
+    // CLIENTES e PAGAMENTOS - merge por ID
+    try{
+      const localCli = getLS('atltv_clientes');
+      if(cliData && cliData.length>0){
+        const nuvem = cliData.map(r=> r.dados_completos||r);
+        const m = new Map(); [...localCli, ...nuvem].forEach(c=>{ if(c&&c.id) m.set(c.id.toString(), c); });
+        const merged = Array.from(m.values());
+        if(merged.length!=localCli.length){ localStorage.setItem('atltv_clientes', JSON.stringify(merged)); hasNew=true; }
+      }
+    }catch(e){}
+
+    if(hasNew && !silent){
+      syncEl.textContent='☁️ Novos dados! Recarregue (F5)';
+      syncEl.style.background='#F59E0B';
+    } else if(!silent){
+      syncEl.textContent='☁️ Online ✅ '+(cliData?.length||0)+' cli, '+(planosData?.length||0)+' planos';
+      syncEl.style.background='#16A34A';
+    }
+  }catch(e){ console.log('pull erro', e.message); }
+}
     if(hasNew && !silent){
       syncEl.textContent='☁️ Novos dados da nuvem! Recarregue (F5) se quiser ver';
       syncEl.style.background='#F59E0B';
