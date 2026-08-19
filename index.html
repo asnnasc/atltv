@@ -77,10 +77,9 @@ async function pushAll(){
     }
     for(let p of planos){
   if(!p.id) p.id='p_'+Date.now()+'_'+Math.random().toString(36).slice(2,6);
-  const payload = { id:p.id.toString(), nome:(p.nome||'').slice(0,100), valor:parseFloat(p.valor||p.preco||0)||0 };
-  try{ await supabase.from('planos').upsert(payload, {onConflict:'id'}); }catch(e){
-    try{ await supabase.from('planos').upsert({ ...payload, descricao:(p.descricao||p.velocidade||'TV').toString().slice(0,200) }, {onConflict:'id'}); }catch(e2){
-      try{ await supabase.from('planos').insert({ nome:payload.nome, valor:payload.valor }); }catch(e3){}
+  const pay = { id:p.id.toString(), nome:(p.nome||'').slice(0,100), valor:parseFloat(p.valor||p.preco||0)||0, descricao:(p.descricao||p.velocidade||'TV').toString().slice(0,200), velocidade:(p.velocidade||p.descricao||'TV').toString().slice(0,100), preco:parseFloat(p.preco||p.valor||0)||0, dados:p };
+  try{ await supabase.from('planos').upsert(pay, {onConflict:'id'}); }catch(e){ try{ await supabase.from('planos').insert(pay); }catch(e2){} }
+}
     }
   }
 }
