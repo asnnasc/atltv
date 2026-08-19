@@ -158,16 +158,6 @@ async function pullAll(silent=false){
     }
   }catch(e){ console.log('pull erro', e.message); }
 }
-    if(hasNew && !silent){
-      syncEl.textContent='☁️ Novos dados da nuvem! Recarregue (F5) se quiser ver';
-      syncEl.style.background='#F59E0B';
-    } else if(!silent){
-      syncEl.textContent='☁️ Online ✅ '+(cliData?.length||0)+' cli, '+(planosData?.length||0)+' planos';
-      syncEl.style.background='#16A34A';
-    }
-  }catch(e){ console.log('pull erro', e.message); }
-}
-
 try{ const l=localStorage.getItem('atltv_logged_user'); if(l) document.getElementById('atltv-login-overlay').style.display='none'; }catch(e){}
 window.ensureButtons=function(){
   const h=document.querySelector('header'); if(!h) return;
