@@ -81,8 +81,6 @@ async function pushAll(){
   try{ await supabase.from('planos').upsert(pay, {onConflict:'id'}); }catch(e){ try{ await supabase.from('planos').insert(pay); }catch(e2){} }
 }
     }
-  }
-}
     for(let u of usuarios){
       if(!u.id) u.id=crypto.randomUUID();
       try{ await supabase.from('usuarios').upsert({ id:u.id.toString(), usuario:(u.usuario||'').slice(0,50), nome:(u.nome||'').slice(0,100), email:(u.email||'').slice(0,100), senha:(u.senha||'').slice(0,100), perfil:(u.perfil||'Operador').slice(0,20), status:(u.status||'Ativo').slice(0,20), dados:u }, {onConflict:'id'}); }catch(e){}
@@ -115,7 +113,6 @@ async function pushAll(){
   }catch(e){ syncEl.textContent='❌ '+e.message; syncEl.style.background='#EF4444'; }
   isPushing=false;
 }
-
 async function pullAll(silent=false){
   try{
     if(!silent){ syncEl.textContent='☁️ Verificando nuvem...'; }
