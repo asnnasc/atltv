@@ -62,50 +62,15 @@ function getLS(k){ try{ return JSON.parse(localStorage.getItem(k)||'[]'); }catch
 function getLSObj(k){ try{ return JSON.parse(localStorage.getItem(k)||'{}'); }catch(e){ return {}; } }
 let isPushing=false, lastPush=0;
 
-async function pushAll(){
-  if(isPushing || Date.now()-lastPush<2000) return;
-  isPushing=true;
-  try{
-    const clientes = getLS('atltv_clientes');
-    const planos = getLS('atltv_planos');
-    const usuarios = getLS('atltv_usuarios');
-    syncEl.textContent='☁️ Salvando...';
-    syncEl.style.background='#2563EB';
-    for(let c of clientes){
-      if(!c.id) c.id=crypto.randomUUID();
-      try{ await supabase.from('clientes').upsert({ id:c.id.toString(), nome:(c.nome||'').slice(0,100), whatsapp:(c.whatsapp||'').slice(0,30), plano:(c.plano_nome||c.plano||'').slice(0,100), valor:parseFloat(c.valor||0)||0, vencimento:(c.data_vencimento||c.vencimento||'').toString().slice(0,10), status:(c.status||'Ativo').slice(0,20), dados_completos:c }, {onConflict:'id'}); }catch(e){}
-    }
-    for(let p of planos){
-      if(!p.id) p.id='p_'+Date.now()+'_'+Math.random().toString(36).slice(2,6);
-      const pay = { id:p.id.toString(), nome:(p.nome||'').slice(0,100), valor:parseFloat(p.valor||p.preco||0)||0, descricao:(p.descricao||p.velocidade||'TV').toString().slice(0,200), velocidade:(p.velocidade||p.descricao||'TV').toString().slice(0,100), preco:parseFloat(p.preco||p.valor||0)||0, dados:p };
-      try{ await supabase.from('planos').upsert(pay, {onConflict:'id'}); }catch(e){}
-    }
-    for(let u of usuarios){
-      if(!u.id) u.id=crypto.randomUUID();
-      try{ await supabase.from('usuarios').upsert({ id:u.id.toString(), usuario:(u.usuario||'').slice(0,50), nome:(u.nome||'').slice(0,100), email:(u.email||'').slice(0,100), senha:(u.senha||'').slice(0,100), perfil:(u.perfil||'Operador').slice(0,20), status:(u.status||'Ativo').slice(0,20), dados:u }, {onConflict:'id'}); }catch(e){}
-    }
-    try{
-      const pags = getLS('atltv_pagamentos');
-      for(let pg of pags.slice(0,500)){
-        if(!pg.id) continue;
-        try{ await supabase.from('pagamentos').upsert({ id:pg.id.toString(), cliente_id:(pg.cliente_id||'').toString(), cliente_nome:(pg.cliente_nome||'').slice(0,100), valor:parseFloat(pg.valor||0)||0, data_vencimento:(pg.data_vencimento||'').slice(0,10), data_pagamento:(pg.data_pagamento||'').slice(0,10), dias_atraso:parseInt(pg.dias_atraso||0)||0, situacao:(pg.situacao||'Pago').slice(0,20), dados:pg }, {onConflict:'id'}); }catch(e){}
-      }
-    }catch(e){}
-    lastPush=Date.now();
-    syncEl.textContent='☁️ Online ✅ '+clientes.length+' cli, '+planos.length+' planos, '+usuarios.length+' users';
-    syncEl.style.background='#16A34A';
-  }catch(e){ syncEl.textContent='❌ '+e.message; syncEl.style.background='#EF4444'; }
-  isPushing=false;
-}
 async function pullAll(silent=false){
   try{
     if(!silent){ syncEl.textContent='☁️ Verificando nuvem...'; }
     const {data:cliData} = await supabase.from('clientes').select('*').limit(1000);
     const {data:planosData} = await supabase.from('planos').select('*').limit(1000);
-    const {data:pagData} = await supabase.from('pagamentos').select('*').limit(2000).catch(()=>({data:[]}));
+    let pagData=[]; try{ const r=await supabase.from('pagamentos').select('*').limit(2000); pagData=r.data||[]; }catch(e){ pagData=[]; }
+    let usuariosData=[]; try{ const r=await supabase.from('usuarios').select('*').limit(500); if(r.data) usuariosData=r.data; }catch(e){}
     let hasNew=false;
 
-    // PLANOS - nuvem é a verdade
     try{
       const localPlanos = getLS('atltv_planos');
       if(planosData && planosData.length>0){
@@ -113,12 +78,10 @@ async function pullAll(silent=false){
         const mapa = new Map();
         [...nuvemP, ...localPlanos].forEach(p=>{ if(p&&p.id) mapa.set(p.id.toString(), {...(mapa.get(p.id.toString())||{}), ...p}); });
         const merged = Array.from(mapa.values());
-        localStorage.setItem('atltv_planos', JSON.stringify(merged));
-        if(merged.length!=localPlanos.length) hasNew=true;
+        if(JSON.stringify(merged)!==JSON.stringify(localPlanos)){ localStorage.setItem('atltv_planos', JSON.stringify(merged)); hasNew=true; }
       }
     }catch(e){}
 
-    // CLIENTES e PAGAMENTOS - merge por ID
     try{
       const localCli = getLS('atltv_clientes');
       if(cliData && cliData.length>0){
@@ -129,11 +92,20 @@ async function pullAll(silent=false){
       }
     }catch(e){}
 
+    try{
+      const localPags = getLS('atltv_pagamentos');
+      if(pagData && pagData.length>0){
+        const mPag = new Map(); [...localPags, ...pagData].forEach(p=>{ if(p&&p.id) mPag.set(p.id.toString(), p); });
+        const mergedPag = Array.from(mPag.values());
+        if(mergedPag.length!=localPags.length){ localStorage.setItem('atltv_pagamentos', JSON.stringify(mergedPag)); hasNew=true; }
+      }
+    }catch(e){}
+
     if(hasNew && !silent){
       syncEl.textContent='☁️ Novos dados! Recarregue (F5)';
       syncEl.style.background='#F59E0B';
     } else if(!silent){
-      syncEl.textContent='☁️ Online ✅ '+(cliData?.length||0)+' cli, '+(planosData?.length||0)+' planos';
+      syncEl.textContent='☁️ Online ✅ '+(cliData?.length||0)+' cli, '+(planosData?.length||0)+' planos, '+(pagData?.length||0)+' pags';
       syncEl.style.background='#16A34A';
     }
   }catch(e){ console.log('pull erro', e.message); }
