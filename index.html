@@ -73,38 +73,22 @@ async function pushAll(){
     syncEl.style.background='#2563EB';
     for(let c of clientes){
       if(!c.id) c.id=crypto.randomUUID();
-      try{ await supabase.from('clientes').upsert({ id:c.id.toString(), nome:(c.nome||'').slice(0,100), whatsapp:(c.whatsapp||'').slice(0,30), plano:(c.plano_nome||c.plano||'').slice(0,100), valor:parseFloat(c.valor||0)||0, vencimento:(c.data_vencimento||c.vencimento||Ge()).toString().slice(0,10), status:(c.status||'Ativo').slice(0,20), dados_completos:c }, {onConflict:'id'}); }catch(e){}
+      try{ await supabase.from('clientes').upsert({ id:c.id.toString(), nome:(c.nome||'').slice(0,100), whatsapp:(c.whatsapp||'').slice(0,30), plano:(c.plano_nome||c.plano||'').slice(0,100), valor:parseFloat(c.valor||0)||0, vencimento:(c.data_vencimento||c.vencimento||'').toString().slice(0,10), status:(c.status||'Ativo').slice(0,20), dados_completos:c }, {onConflict:'id'}); }catch(e){}
     }
     for(let p of planos){
-  if(!p.id) p.id='p_'+Date.now()+'_'+Math.random().toString(36).slice(2,6);
-  const pay = { id:p.id.toString(), nome:(p.nome||'').slice(0,100), valor:parseFloat(p.valor||p.preco||0)||0, descricao:(p.descricao||p.velocidade||'TV').toString().slice(0,200), velocidade:(p.velocidade||p.descricao||'TV').toString().slice(0,100), preco:parseFloat(p.preco||p.valor||0)||0, dados:p };
-  try{ await supabase.from('planos').upsert(pay, {onConflict:'id'}); }catch(e){ try{ await supabase.from('planos').insert(pay); }catch(e2){} }
-}
+      if(!p.id) p.id='p_'+Date.now()+'_'+Math.random().toString(36).slice(2,6);
+      const pay = { id:p.id.toString(), nome:(p.nome||'').slice(0,100), valor:parseFloat(p.valor||p.preco||0)||0, descricao:(p.descricao||p.velocidade||'TV').toString().slice(0,200), velocidade:(p.velocidade||p.descricao||'TV').toString().slice(0,100), preco:parseFloat(p.preco||p.valor||0)||0, dados:p };
+      try{ await supabase.from('planos').upsert(pay, {onConflict:'id'}); }catch(e){}
     }
     for(let u of usuarios){
       if(!u.id) u.id=crypto.randomUUID();
       try{ await supabase.from('usuarios').upsert({ id:u.id.toString(), usuario:(u.usuario||'').slice(0,50), nome:(u.nome||'').slice(0,100), email:(u.email||'').slice(0,100), senha:(u.senha||'').slice(0,100), perfil:(u.perfil||'Operador').slice(0,20), status:(u.status||'Ativo').slice(0,20), dados:u }, {onConflict:'id'}); }catch(e){}
     }
-    
-    // sync pagamentos silencioso
     try{
       const pags = getLS('atltv_pagamentos');
-      const fin = getLS('atltv_financeiro');
-      for(let pg of [...pags, ...fin].slice(0,500)){
+      for(let pg of pags.slice(0,500)){
         if(!pg.id) continue;
-        try{
-          await supabase.from('pagamentos').upsert({ 
-            id: pg.id.toString(), 
-            cliente_id: (pg.cliente_id||'').toString(), 
-            cliente_nome: (pg.cliente_nome||pg.nome||'').toString().slice(0,100), 
-            valor: parseFloat(pg.valor||0)||0, 
-            data_vencimento: (pg.data_vencimento||'').toString().slice(0,10), 
-            data_pagamento: (pg.data_pagamento||'').toString().slice(0,10), 
-            dias_atraso: parseInt(pg.dias_atraso||0)||0, 
-            situacao: (pg.situacao||'Pago').toString().slice(0,20),
-            dados: pg 
-          }, {onConflict:'id'});
-        }catch(e){}
+        try{ await supabase.from('pagamentos').upsert({ id:pg.id.toString(), cliente_id:(pg.cliente_id||'').toString(), cliente_nome:(pg.cliente_nome||'').slice(0,100), valor:parseFloat(pg.valor||0)||0, data_vencimento:(pg.data_vencimento||'').slice(0,10), data_pagamento:(pg.data_pagamento||'').slice(0,10), dias_atraso:parseInt(pg.dias_atraso||0)||0, situacao:(pg.situacao||'Pago').slice(0,20), dados:pg }, {onConflict:'id'}); }catch(e){}
       }
     }catch(e){}
     lastPush=Date.now();
@@ -166,6 +150,7 @@ window.atltvEditUser=function(id){ let users=[]; try{ users=JSON.parse(localStor
 window.atltvDelUser=function(id){ if(!confirm('Excluir?')) return; let users=[]; try{ users=JSON.parse(localStorage.getItem('atltv_usuarios')||'[]'); }catch(e){} users=users.filter(function(x){return x.id!==id}); localStorage.setItem('atltv_usuarios', JSON.stringify(users)); window.renderUsersList(); };
 document.getElementById('atltv-new-user-toggle').addEventListener('click',function(){ const f=document.getElementById('atltv-user-form'); f.style.display=(f.style.display==='none'||!f.style.display)?'block':'none'; });
 document.getElementById('u-salvar').addEventListener('click',function(){ const id=document.getElementById('u-edit-id').value; const nome=document.getElementById('u-nome').value.trim(); const usuario=document.getElementById('u-usuario').value.trim(); const email=document.getElementById('u-email').value.trim(); const senha=document.getElementById('u-senha').value; const perfil=document.getElementById('u-perfil').value; const status=document.getElementById('u-status').value; if(!nome||!usuario) return alert('Preencha'); let us=[]; try{ us=JSON.parse(localStorage.getItem('atltv_usuarios')||'[]'); }catch(e){} if(!us.length) us=[{id:'1',usuario:'admin',senha:'1234',nome:'Administrador',perfil:'Admin',status:'Ativo'}]; if(id){ for(let i=0;i<us.length;i++) if(us[i].id===id){ us[i].nome=nome; us[i].usuario=usuario; us[i].email=email; if(senha) us[i].senha=senha; us[i].perfil=perfil; us[i].status=status; } } else { if(!senha) return alert('Senha obrigatoria'); us.push({id:Date.now().toString(),nome:nome,usuario:usuario,email:email,senha:senha,perfil:perfil,status:status}); } localStorage.setItem('atltv_usuarios', JSON.stringify(us)); window.renderUsersList(); document.getElementById('atltv-user-form').style.display='none'; });
+
 // SEM RELOAD AUTOMATICO
 setTimeout(()=>pullAll(false), 1500);
 setInterval(()=>pullAll(true), 30000);
